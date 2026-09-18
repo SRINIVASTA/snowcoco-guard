@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import plotly.express px
+import plotly.express as px
 from snowflake.snowpark.context import get_active_session
 
 st.set_page_config(page_title="SnowCortex Guard", page_icon="🛡️", layout="wide")
