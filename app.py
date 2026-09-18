@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from snowflake.snowpark.context import get_active_session
+from snowflake.snowpark import Session
 
 # Page layout setup
 st.set_page_config(page_title="SnowCortex Guard", page_icon="🛡️", layout="wide")
@@ -18,49 +18,62 @@ st.markdown("""
 st.markdown('<p class="main-header">🛡️ SnowCortex Guard: Autonomous Compliance Copilot</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-header">Automated Financial Intelligence & Audit Line-of-Custody Tracking</p>', unsafe_allow_html=True)
 
-# --- HYBRID CONNECTION HANDLER ---
-# Dynamically routes connection based on whether it is running inside Snowflake or on public Streamlit Cloud
-try:
-    # Attempt to grab active context if running natively inside Snowflake
-    session = get_active_session()
-except ImportError:
-    # Fallback to connection defined in the Streamlit web Secrets TOML panel
-    try:
-        conn = st.connection("snowflake")
-        session = conn.session()
-    except Exception as e:
-        st.error(f"Failed to initialize secure cloud database connection: {str(e)}")
-        st.stop()
-
-# --- SIDEBAR GOVERNANCE MASK ---
+# --- SIDEBAR INTERACTIVE CREDENTIAL LOGIN PANEL ---
 with st.sidebar:
     st.image("https://icons8.com", width=80)
     st.markdown("### Agent Governance Mask")
-    st.info("Authenticated via Streamlit Cloud Secure Secrets Wrapper")
+    st.info("Dynamic Credential Authentication Mode")
+    
+    # Text input fields for you to type your password live in the dashboard
+    input_user = st.text_input("Snowflake User", value="", key="login_user")
+    input_password = st.text_input("Snowflake Password", type="password", key="login_pwd")
+    
     st.caption("Target context: HACKATHON_COMPLIANCE_DB.RISK_INTELLIGENCE_SCHEMA")
     st.divider()
-    
+
+# Establish connection using the credentials you typed in live
+session = None
+if input_user and input_password:
+    try:
+        # Pull environment configurations from secrets config map
+        ctx_config = {
+            "account": st.secrets["connections"]["snowflake"]["account"],
+            "user": input_user,
+            "password": input_password,
+            "role": st.secrets["connections"]["snowflake"]["role"],
+            "warehouse": st.secrets["connections"]["snowflake"]["warehouse"],
+            "database": st.secrets["connections"]["snowflake"]["database"],
+            "schema": st.secrets["connections"]["snowflake"]["schema"]
+        }
+        session = Session.builder.configs(ctx_config).create()
+        st.sidebar.success("🔑 System Connected Natively!")
+    except Exception as e:
+        st.sidebar.error(f"Authentication Failed: {str(e)}")
+else:
+    st.warning("🔒 Please enter your Snowflake Username and Password in the sidebar panel to unlock the application data assets.")
+    st.stop()
+
+# Show active metric counter in sidebar once logged in successfully
+if session:
     try:
         total_tx_in_db = session.sql("SELECT COUNT(*) FROM TRANSACTION_LEDGER").collect()[0][0]
-        st.metric(label="Active Transaction Logs", value=f"{total_tx_in_db}+ Records")
+        st.sidebar.metric(label="Active Transaction Logs", value=f"{total_tx_in_db}+ Records")
+        st.sidebar.success("📊 Plotly Engine Connected")
     except Exception:
-        st.caption("Unable to fetch real-time record count metrics.")
-        
-    st.success("📊 Plotly Engine Connected")
-    st.success("✔️ Cortex Lineage Active")
+        pass
 
-# Three Functional Subtasks Action Panel
+# --- EXECUTIVE ACTION PANEL ---
 st.markdown("### ⚡ Executive Action Panel")
 col1, col2, col3 = st.columns(3)
 
 with col1:
     st.markdown("#### 🔍 Task 1: Velocity Ledger Analysis")
-    st.caption("Query TRANSACTION_LEDGER to isolate recent rolling 48-hour activity spikes across high-risk accounts.")
+    st.caption("Query TRANSACTION_LEDGER to isolate recent rolling 48-hour activity spikes.")
     btn_velocity = st.button("Analyze 48-Hour Velocity", key="btn_vel")
 
 with col2:
     st.markdown("#### ⏳ Task 2: KYC Lifecycle Audit")
-    st.caption("Audit expiration lifecycles and project future mandatory compliance remediation windows.")
+    st.caption("Audit expiration lifecycles and project compliance remediation windows.")
     btn_kyc = st.button("Run KYC Expiry Audit", key="btn_kyc_lifecycle")
 
 with col3:
@@ -71,9 +84,9 @@ with col3:
 st.divider()
 
 # TASK 1 HANDLER: TELEMETRY ANALYSIS AND PLOTLY BAR BREAKDOWN
-if btn_velocity:
+if btn_velocity and session:
     st.subheader("📊 Flagged Accounts: 48-Hour Transaction Telemetry & Category Spikes")
-    with st.spinner("Analyzing high-risk data flows across bulk ledger datasets..."):
+    with st.spinner("Analyzing high-risk data flows..."):
         try:
             df_velocity = session.sql("SELECT * FROM V_FLAGGED_ACCOUNTS_48HR_VELOCITY WHERE AMOUNT >= 500000").to_pandas()
             
@@ -94,12 +107,12 @@ if btn_velocity:
             st.error(f"Error executing telemetry check: {str(e)}")
 
 # TASK 2 HANDLER: STORED PROCEDURE REMEDIATION AND GANTT LIFECYCLE CHART
-if btn_kyc:
+if btn_kyc and session:
     st.subheader("⏳ Lifecycle Audit: Expired Identifications & Grace Window Calculations")
     with st.spinner("Calculating remediation timelines..."):
         try:
-            proc_result = session.sql("CALL AUDIT_KYC_STATUS_LIFECYCLE()").collect()
-            st.success(proc_result[0][0])
+            proc_result = session.sql("CALL AUDIT_KYC_STATUS_LIFECYCLE()").collect()[0][0]
+            st.success(proc_result)
             
             df_kyc = session.sql("SELECT ACCOUNT_ID, CUSTOMER_NAME, KYC_STATUS, KYC_EXPIRY_DATE, RECOMMENDED_REVERIFICATION_DATE FROM ACCOUNT_MASTER WHERE KYC_STATUS = 'EXPIRED'").to_pandas()
             
@@ -119,7 +132,7 @@ if btn_kyc:
             st.error(f"Error executing lifecycle validation: {str(e)}")
 
 # TASK 3 HANDLER: WORKFLOW ARCHIVE SUBMISSION COMPILATION
-if btn_export:
+if btn_export and session:
     st.subheader("📄 Formal Regulatory Submission Pipeline")
     with st.spinner("Compiling cross-referenced compliance outputs..."):
         try:
