@@ -1,7 +1,19 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from snowflake.snowpark.context import get_active_session
+# --- REPLACED CONNECTION BLOCK ---
+try:
+    # 1. Checks if running inside Snowflake Native Warehouses
+    from snowflake.snowpark.context import get_active_session
+    session = get_active_session()
+except ImportError:
+    # 2. Fallback for Streamlit Community Cloud using secrets connection mapping
+    try:
+        conn = st.connection("snowflake")
+        session = conn.session()
+    except Exception as e:
+        st.error(f"Failed to initialize a secure remote connection layer: {str(e)}")
+        st.stop()
 
 st.set_page_config(page_title="SnowCortex Guard", page_icon="🛡️", layout="wide")
 
