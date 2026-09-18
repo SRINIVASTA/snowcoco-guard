@@ -49,7 +49,7 @@ if input_user and input_password:
         
         # --- FORCED CONTEXT FIX FOR COMPLIANCE HACKATHON ---
         session.sql("USE ROLE ACCOUNTADMIN").collect() # <-- ADD THIS FIRST LINE!
-        session.sql("USE DATABASE HACKATHON_COMPLIANCE_DB").collect()
+        session.sql("USE DATABASE COMPLIANCE_DB").collect() # <--- FIXED HERE
         session.sql("USE SCHEMA RISK_INTELLIGENCE_SCHEMA").collect()
         session.sql("USE WAREHOUSE COMPUTE_WH").collect()
         
