@@ -46,6 +46,11 @@ if input_user and input_password:
             "schema": st.secrets["sf_schema"]
         }
         session = Session.builder.configs(ctx_config).create()
+        
+        # --- FORCED CONTEXT FIX FOR COMPLIANCE HACKATHON ---
+        session.sql("USE DATABASE HACKATHON_COMPLIANCE_DB").collect()
+        session.sql("USE SCHEMA RISK_INTELLIGENCE_SCHEMA").collect()
+        
         st.sidebar.success("🔑 System Connected Natively!")
     except Exception as e:
         st.sidebar.error(f"Authentication Failed: {str(e)}")
