@@ -31,19 +31,19 @@ with st.sidebar:
     st.caption("Target context: HACKATHON_COMPLIANCE_DB.RISK_INTELLIGENCE_SCHEMA")
     st.divider()
 
-# Establish connection using the credentials you typed in live
+# Establish connection using the credentials you typed in live + flat secrets map
 session = None
 if input_user and input_password:
     try:
-        # Pull environment configurations from secrets config map
+        # Pull flat environment configurations directly from secrets keys
         ctx_config = {
-            "account": st.secrets["connections"]["snowflake"]["account"],
+            "account": st.secrets["sf_account"],
             "user": input_user,
             "password": input_password,
-            "role": st.secrets["connections"]["snowflake"]["role"],
-            "warehouse": st.secrets["connections"]["snowflake"]["warehouse"],
-            "database": st.secrets["connections"]["snowflake"]["database"],
-            "schema": st.secrets["connections"]["snowflake"]["schema"]
+            "role": st.secrets["sf_role"],
+            "warehouse": st.secrets["sf_warehouse"],
+            "database": st.secrets["sf_database"],
+            "schema": st.secrets["sf_schema"]
         }
         session = Session.builder.configs(ctx_config).create()
         st.sidebar.success("🔑 System Connected Natively!")
